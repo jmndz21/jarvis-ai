@@ -1,10 +1,10 @@
-"""Día 1: chat por consola con Claude y memoria de conversación."""
+"""Día 1: chat por consola con Ollama (LLM local, gratis) y memoria de conversación."""
 
 import sys
 
-from anthropic import Anthropic
+import ollama
 
-from src.config import ANTHROPIC_API_KEY, JARVIS_MODEL, JARVIS_NAME
+from src.config import JARVIS_MODEL, JARVIS_NAME
 
 SYSTEM_PROMPT = (
     f"Eres {JARVIS_NAME}, un asistente de IA personal estilo Jarvis. "
@@ -13,14 +13,18 @@ SYSTEM_PROMPT = (
 
 
 def main() -> None:
-    if not ANTHROPIC_API_KEY:
-        print("Falta ANTHROPIC_API_KEY. Copia .env.example a .env y completa tu clave.")
+    try:
+        ollama.list()
+    except Exception:
+        print(
+            "No se pudo conectar con Ollama. Instálalo desde https://ollama.com "
+            "y asegúrate de que esté corriendo (el instalador lo deja como servicio en Windows)."
+        )
         sys.exit(1)
 
-    client = Anthropic(api_key=ANTHROPIC_API_KEY)
-    history: list[dict] = []
+    history: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-    print(f"{JARVIS_NAME} listo. Escribe 'salir' para terminar.\n")
+    print(f"{JARVIS_NAME} listo (modelo: {JARVIS_MODEL}). Escribe 'salir' para terminar.\n")
 
     while True:
         user_input = input("Tú: ").strip()
@@ -32,16 +36,18 @@ def main() -> None:
 
         history.append({"role": "user", "content": user_input})
 
-        response = client.messages.create(
-            model=JARVIS_MODEL,
-            max_tokens=1024,
-            system=SYSTEM_PROMPT,
-            messages=history,
-        )
+        try:
+            response = ollama.chat(model=JARVIS_MODEL, messages=history)
+        except ollama.ResponseError as e:
+            if e.status_code == 404:
+                print(
+                    f"El modelo '{JARVIS_MODEL}' no está descargado. "
+                    f"Corre: ollama pull {JARVIS_MODEL}"
+                )
+                sys.exit(1)
+            raise
 
-        reply = "".join(
-            block.text for block in response.content if block.type == "text"
-        )
+        reply = response["message"]["content"]
         print(f"{JARVIS_NAME}: {reply}\n")
 
         history.append({"role": "assistant", "content": reply})
