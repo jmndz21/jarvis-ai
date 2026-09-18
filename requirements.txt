@@ -1,0 +1,8 @@
+anthropic>=0.40.0
+python-dotenv>=1.0.1
+
+# Se irán agregando por día, según TASKS.md:
+# Día 2 (voz):    openai-whisper, elevenlabs, pyaudio, openwakeword
+# Día 3 (PC):     pyautogui, pillow
+# Día 4 (correo): google-api-python-client, google-auth-oauthlib
+# Día 5 (visión): opencv-python
